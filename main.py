@@ -9,6 +9,10 @@ from PIL import Image
 import requests
 import base64
 import time
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class OCRWorker(QObject):
     finished = pyqtSignal()
@@ -69,7 +73,7 @@ class OCRWorker(QObject):
             
             # Groq Llama Vision API request block:
 
-            DEMO_KEY="gsk_be...l"
+            DEMO_KEY = os.getenv("GROQ_DEMO_KEY")
 
             GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
             headers = {
