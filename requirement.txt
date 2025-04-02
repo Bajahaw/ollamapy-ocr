@@ -1,2 +1,4 @@
 Pillow>=10.0.0
 requests>=2.31.0
+PyQt6
+python-dotenv
