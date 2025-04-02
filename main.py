@@ -1,7 +1,7 @@
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QComboBox, QTextEdit, QFileDialog, QMessageBox
+    QLabel, QPushButton, QComboBox, QTextEdit, QFileDialog, QMessageBox, QSizePolicy
 )
 from PyQt6.QtCore import Qt, QMimeData, QThread, pyqtSignal, QObject, QTimer
 from PyQt6.QtGui import QPixmap, QImage
@@ -121,11 +121,12 @@ class OCRWorker(QObject):
     def stop(self):
         self._is_running = False
 
+
 class OCRApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Modern OCR with Ollama")
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, 600, 600)
         
         # Variables
         self.image_path = ""
@@ -143,65 +144,64 @@ class OCRApp(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        # Main layout
-        layout = QHBoxLayout(central_widget)
-        
-        # Left panel (controls)
-        left_panel = QWidget()
-        left_panel.setFixedWidth(250)
-        left_layout = QVBoxLayout(left_panel)
+        # Main layout (single panel)
+        main_layout = QVBoxLayout(central_widget)
         
         # Logo/Title
         title = QLabel("OCR Tool")
         title.setStyleSheet("font-size: 18px; font-weight: bold;")
-        left_layout.addWidget(title)
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(title)
         
-        # Image selection button
-        self.select_btn = QPushButton("Select Image")
-        self.select_btn.clicked.connect(self.select_image)
-        self.select_btn.setStyleSheet("padding: 8px;")
-        left_layout.addWidget(self.select_btn)
-        
-        # Model selection
-        left_layout.addWidget(QLabel("Model:"))
-        self.model_dropdown = QComboBox()
-        self.model_dropdown.addItem("Loading models...")
-        left_layout.addWidget(self.model_dropdown)
-        
-        # Process button
-        self.process_btn = QPushButton("Run OCR")
-        self.process_btn.clicked.connect(self.run_ocr)
-        self.process_btn.setStyleSheet(
-            "padding: 8px; background-color: #4CAF50; color: white;"
-        )
-        left_layout.addWidget(self.process_btn)
-        
-        # Image info
-        self.image_info = QLabel("No image loaded")
-        self.image_info.setWordWrap(True)
-        left_layout.addWidget(self.image_info)
-        
-        left_layout.addStretch()
-        
-        # Right panel (image + results)
-        right_panel = QWidget()
-        right_layout = QVBoxLayout(right_panel)
-        
-        # Image display
+        # Image display - clickable
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setStyleSheet("""
             border: 2px dashed #aaa;
             min-height: 200px;
         """)
-        self.image_label.setText("Drag & drop image here\nor paste from clipboard")
-        right_layout.addWidget(self.image_label)
+        self.image_label.setText("Click to select an image\nor drag & drop here\nor paste from clipboard")
+        self.image_label.setMinimumHeight(250)
+        self.image_label.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.image_label.mousePressEvent = self.image_click_event
+        main_layout.addWidget(self.image_label)
+        
+        # Image info
+        self.image_info = QLabel("No image loaded")
+        self.image_info.setWordWrap(True)
+        self.image_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(self.image_info)
+        
+        # Control panel (vertical layout below image)
+        control_panel = QWidget()
+        control_layout = QVBoxLayout(control_panel)
+        
+        # Process button (now above and expanding)
+        self.process_btn = QPushButton("Run OCR")
+        self.process_btn.clicked.connect(self.run_ocr)
+        self.process_btn.setStyleSheet(
+            "padding: 8px; background-color: #4CAF50; color: white;"
+        )
+        self.process_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.process_btn.setMinimumHeight(40)
+        control_layout.addWidget(self.process_btn)
+        
+        # Model selection (now below the button)
+        model_selection = QHBoxLayout()
+        # model_selection.addWidget(QLabel("Model:"))
+        self.model_dropdown = QComboBox()
+        self.model_dropdown.addItem("Loading models...")
+        self.model_dropdown.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        model_selection.addWidget(self.model_dropdown)
+        control_layout.addLayout(model_selection)
+        
+        main_layout.addWidget(control_panel)
         
         # Results
-        right_layout.addWidget(QLabel("Extracted Text:"))
+        main_layout.addWidget(QLabel("Extracted Text:"))
         self.result_text = QTextEdit()
         self.result_text.setReadOnly(True)
-        right_layout.addWidget(self.result_text)
+        main_layout.addWidget(self.result_text)
         
         # Status bar
         self.status_bar = QLabel("Ready")
@@ -210,11 +210,12 @@ class OCRApp(QMainWindow):
             padding: 5px;
             color: #666;
         """)
-        right_layout.addWidget(self.status_bar)
-        
-        # Add panels to main layout
-        layout.addWidget(left_panel)
-        layout.addWidget(right_panel)
+        main_layout.addWidget(self.status_bar)
+
+    def image_click_event(self, event):
+        # Handle clicks on the image area
+        self.select_image()
+
     
     # Drag and drop support
     def dragEnterEvent(self, event):
@@ -418,3 +419,4 @@ if __name__ == "__main__":
     window = OCRApp()
     window.show()
     sys.exit(app.exec())
+    
